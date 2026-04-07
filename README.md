@@ -35,8 +35,13 @@ cd client
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. In dev, the UI resolves Evennia at `ws://127.0.0.1:5173/evennia-ws`, which Vite proxies to `ws://127.0.0.1:4002` (override with `VITE_EVENNIA_WS_PROXY_TARGET` in `client/.env.local` if your portal listens elsewhere).
+Open **http://127.0.0.1:5173** while Evennia is running. In dev, Vite proxies:
 
-To point at a **remote** Evennia from the browser, copy `client/.env.example` to `client/.env.local` and set `VITE_EVENNIA_WS_URL=ws://host:4002`.
+- **`/evennia-portal`** → `http://127.0.0.1:4001` (Django session cookie for webclient bootstrap)
+- **`/evennia-ws`** → `ws://127.0.0.1:4002` (WebSocket)
 
-Shared Evennia URL config helper: `client/src/config/evennia.ts`.
+Override targets in `client/.env.local` with `VITE_EVENNIA_PORTAL_PROXY_TARGET` and `VITE_EVENNIA_WS_PROXY_TARGET` if needed.
+
+**Remote Evennia:** set `VITE_EVENNIA_WS_URL` and `VITE_EVENNIA_PORTAL_ORIGIN` (same host as the portal; the browser must be able to reach both with credentials if cross-origin).
+
+Shared helpers: `client/src/config/evennia.ts`, `client/src/evennia/useEvenniaWebClient.ts`.

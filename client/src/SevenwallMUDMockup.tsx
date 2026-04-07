@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react';
+import { useEvenniaWebClient } from './evennia/useEvenniaWebClient';
 
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'oracle' | 'empty';
 
@@ -59,6 +68,8 @@ const rarityTone: Record<Rarity, string> = {
 };
 
 export default function SevenwallMUDMockup() {
+  const evennia = useEvenniaWebClient();
+  const [commandLine, setCommandLine] = useState('');
   const [pressureTooltipOpen, setPressureTooltipOpen] = useState(false);
   const [pressureTooltipStyle, setPressureTooltipStyle] = useState({ top: 0, left: 0 });
   const [activeLink, setActiveLink] = useState<string | null>(null);
@@ -73,12 +84,26 @@ export default function SevenwallMUDMockup() {
       el.scrollTop = el.scrollHeight;
       setShowTopFade(el.scrollTop > 8);
     }
-  }, []);
+  }, [evennia.lines, evennia.status, evennia.error]);
 
   const handleTerminalScroll = () => {
     const el = terminalScrollRef.current;
     if (!el) return;
     setShowTopFade(el.scrollTop > 8);
+  };
+
+  const submitCommand = () => {
+    const t = commandLine.trim();
+    if (!t) return;
+    evennia.sendText(t);
+    setCommandLine('');
+  };
+
+  const handleCommandKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitCommand();
+    }
   };
 
   const houseSerif = useMemo(
@@ -493,13 +518,46 @@ export default function SevenwallMUDMockup() {
                     className="h-full overflow-y-auto px-4 py-4 scroll-smooth [scrollbar-width:thin] [scrollbar-color:#5f4730_#120f0d]"
                   >
                     <div className="space-y-0">
-                      {feed.map((entry, idx) => (
-                        <div key={idx} className="py-0">
-                          <p className="text-[1.08rem] leading-8 text-[#e6dccd]">
-                            {renderHighlightedText(entry.text, entry.highlight)}
-                          </p>
-                        </div>
+                      {(evennia.status === 'bootstrapping' || evennia.status === 'connecting') &&
+                      evennia.lines.length === 0 ? (
+                        <p className="text-[1.08rem] leading-8 text-[#8f7e68]">Connecting to Evennia…</p>
+                      ) : null}
+
+                      {evennia.error ? (
+                        <p className="text-[1.08rem] leading-8 text-[#e8a598]">{evennia.error}</p>
+                      ) : null}
+
+                      {evennia.lines.map((line, idx) => (
+                        <p
+                          key={`ev-${idx}`}
+                          className="text-[1.08rem] leading-8 text-[#e6dccd] whitespace-pre-wrap"
+                        >
+                          {line}
+                        </p>
                       ))}
+
+                      {evennia.status === 'open' && evennia.lines.length === 0 && !evennia.error ? (
+                        <p className="text-[0.95rem] leading-7 text-[#8f7e68]">
+                          Connected — try <span className="text-[#c9b89a]">help</span>,{' '}
+                          <span className="text-[#c9b89a]">look</span>, or play as usual.
+                        </p>
+                      ) : null}
+
+                      {evennia.lines.length === 0 &&
+                      (evennia.status === 'error' || evennia.status === 'idle') ? (
+                        <>
+                          <p className="pb-2 text-[10px] uppercase tracking-[0.2em] text-[#5c4d3a]">
+                            Mock preview (server offline)
+                          </p>
+                          {feed.map((entry, idx) => (
+                            <div key={idx} className="py-0">
+                              <p className="text-[1.08rem] leading-8 text-[#e6dccd]">
+                                {renderHighlightedText(entry.text, entry.highlight)}
+                              </p>
+                            </div>
+                          ))}
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -547,8 +605,35 @@ export default function SevenwallMUDMockup() {
                       <div />
                     </div>
                   </div>
-                  <div className="border border-[#44362a] bg-[#080706] px-4 py-3 font-mono text-sm text-[#8f7e68]">
-                    {'>'} whisper vale I saw the mirror move
+                  <div className="space-y-2 border border-[#44362a] bg-[#080706] px-3 py-2 font-mono text-sm text-[#8f7e68]">
+                    <div className="flex min-h-[2.75rem] items-end gap-2">
+                      {evennia.prompt ? (
+                        <span className="shrink-0 text-[#c9b89a]">{evennia.prompt}</span>
+                      ) : (
+                        <span className="shrink-0 text-[#6b5c48]">&gt;</span>
+                      )}
+                      <textarea
+                        value={commandLine}
+                        onChange={(e) => setCommandLine(e.target.value)}
+                        onKeyDown={handleCommandKeyDown}
+                        rows={2}
+                        className="min-h-[2.5rem] w-full resize-none bg-transparent text-[#d6c7b0] outline-none placeholder:text-[#5c4d3a]"
+                        placeholder="Command (Enter to send, Shift+Enter for newline)"
+                        spellCheck={false}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#2a231c] pt-2 text-[10px] text-[#6b5c48]">
+                      <span className="uppercase tracking-wider">
+                        Evennia: {evennia.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void evennia.reconnect()}
+                        className="border border-[#5a4330] px-2 py-0.5 text-[#b59b7a] hover:bg-[rgba(158,118,70,0.12)]"
+                      >
+                        Reconnect
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
