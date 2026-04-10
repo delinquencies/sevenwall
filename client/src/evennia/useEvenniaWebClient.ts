@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { bootstrapEvenniaSession, getEvenniaWebclientFetchUrl } from './bootstrapSession';
 import { getEvenniaWebSocketUrl } from '../config/evennia';
-import { plainEvenniaText } from './plainText';
 
 export type ConnectionStatus = 'idle' | 'bootstrapping' | 'connecting' | 'open' | 'error';
 
@@ -111,7 +110,7 @@ export function useEvenniaWebClient() {
           case 'text': {
             const chunk = args[0];
             if (typeof chunk === 'string') {
-              const t = plainEvenniaText(chunk).trimEnd();
+              const t = chunk.trimEnd();
               if (t) {
                 setLines((prev) => [...prev, t]);
               }
@@ -121,7 +120,7 @@ export function useEvenniaWebClient() {
           case 'prompt': {
             const p = args[0];
             if (typeof p === 'string') {
-              setPrompt(plainEvenniaText(p));
+              setPrompt(p);
             }
             break;
           }

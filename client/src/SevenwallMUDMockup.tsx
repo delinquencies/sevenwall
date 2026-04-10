@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
+import { EvenniaHtmlBlock, EvenniaHtmlLines } from './evennia/EvenniaHtmlBlock';
 import { useEvenniaWebClient } from './evennia/useEvenniaWebClient';
 
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'oracle' | 'empty';
@@ -527,14 +528,11 @@ export default function SevenwallMUDMockup() {
                         <p className="text-[1.08rem] leading-8 text-[#e8a598]">{evennia.error}</p>
                       ) : null}
 
-                      {evennia.lines.map((line, idx) => (
-                        <p
-                          key={`ev-${idx}`}
-                          className="text-[1.08rem] leading-8 text-[#e6dccd] whitespace-pre-wrap"
-                        >
-                          {line}
-                        </p>
-                      ))}
+                      {evennia.lines.length > 0 ? (
+                        <div className="text-[1.08rem] leading-8 text-[#e6dccd]">
+                          <EvenniaHtmlLines lines={evennia.lines} />
+                        </div>
+                      ) : null}
 
                       {evennia.status === 'open' && evennia.lines.length === 0 && !evennia.error ? (
                         <p className="text-[0.95rem] leading-7 text-[#8f7e68]">
@@ -608,7 +606,9 @@ export default function SevenwallMUDMockup() {
                   <div className="space-y-2 border border-[#44362a] bg-[#080706] px-3 py-2 font-mono text-sm text-[#8f7e68]">
                     <div className="flex min-h-[2.75rem] items-end gap-2">
                       {evennia.prompt ? (
-                        <span className="shrink-0 text-[#c9b89a]">{evennia.prompt}</span>
+                        <div className="min-w-0 max-w-[min(100%,28rem)] shrink">
+                          <EvenniaHtmlBlock html={evennia.prompt} />
+                        </div>
                       ) : (
                         <span className="shrink-0 text-[#6b5c48]">&gt;</span>
                       )}
